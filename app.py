@@ -1,200 +1,143 @@
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, request, render_template_string, session, redirect, url_for
 import random
+from collections import defaultdict
 
 app = Flask(__name__)
+app.secret_key = 'supersecretkey'
 
-# Define 100 questions
+# Sample question and career data
 questions = [
-    "Do you enjoy solving complex problems?",
-    "Are you comfortable speaking in front of a crowd?",
-    "Do you like working with your hands?",
-    "Are you interested in technology?",
-    "Do you enjoy helping others?",
-    "Are you good at organizing things?",
-    "Do you prefer working in a team?",
-    "Do you enjoy creative activities like drawing or writing?",
-    "Do you prefer working outdoors?",
-    "Do you like working with numbers?",
-    "Are you detail-oriented?",
-    "Do you enjoy learning about how things work?",
-    "Do you like managing people or projects?",
-    "Do you enjoy teaching or mentoring others?",
-    "Do you enjoy writing or storytelling?",
-    "Do you enjoy caring for animals?",
-    "Do you like fast-paced environments?",
-    "Do you enjoy cooking or baking?",
-    "Do you like working with machines?",
-    "Do you enjoy scientific research?",
-    "Do you like helping people in emergencies?",
-    "Do you enjoy designing things?",
-    "Do you enjoy traveling?",
-    "Do you enjoy analyzing data?",
-    "Are you good at resolving conflicts?",
-    "Do you like taking the lead in group settings?",
-    "Do you enjoy playing with code or scripting?",
-    "Do you enjoy planning events?",
-    "Do you like fixing things?",
-    "Do you enjoy making decisions quickly?",
-    "Do you enjoy physical activities?",
-    "Are you interested in law and justice?",
-    "Do you enjoy talking to new people?",
-    "Do you enjoy solving math problems?",
-    "Do you enjoy designing user interfaces?",
-    "Do you like writing reports?",
-    "Do you enjoy watching documentaries?",
-    "Do you enjoy DIY home projects?",
-    "Are you interested in environmental issues?",
-    "Do you enjoy creating digital content?",
-    "Are you comfortable using spreadsheets?",
-    "Do you enjoy photography?",
-    "Do you enjoy keeping things clean and organized?",
-    "Do you enjoy drawing or painting?",
-    "Do you enjoy competitive situations?",
-    "Do you enjoy exploring new places?",
-    "Do you enjoy psychology or understanding behavior?",
-    "Do you enjoy historical subjects?",
-    "Do you enjoy creating videos?",
-    "Do you like playing strategy games?",
-    "Do you enjoy gardening?",
-    "Do you enjoy participating in community service?",
-    "Do you enjoy working with children?",
-    "Do you enjoy programming apps?",
-    "Do you like managing finances?",
-    "Do you enjoy interior design?",
-    "Do you enjoy woodworking?",
-    "Do you enjoy traveling for work?",
-    "Do you like handling customer complaints?",
-    "Do you enjoy analyzing financial trends?",
-    "Do you enjoy giving advice to friends?",
-    "Do you enjoy social media?",
-    "Do you enjoy talking about fashion?",
-    "Do you enjoy helping sick people?",
-    "Do you enjoy teaching languages?",
-    "Do you like performing on stage?",
-    "Do you enjoy using editing software?",
-    "Do you enjoy learning about history?",
-    "Do you enjoy training others?",
-    "Do you enjoy driving vehicles?",
-    "Do you enjoy talking about science?",
-    "Do you like organizing files?",
-    "Do you like giving presentations?",
-    "Do you enjoy assembling furniture?",
-    "Do you enjoy mentoring students?",
-    "Do you enjoy analyzing criminal cases?",
-    "Do you enjoy painting houses?",
-    "Do you enjoy studying biology?",
-    "Do you enjoy giving tours?",
-    "Do you enjoy writing code?",
-    "Do you enjoy helping the elderly?",
-    "Do you enjoy making spreadsheets?",
-    "Do you enjoy acting in plays?",
-    "Do you enjoy making crafts?",
-    "Do you enjoy giving interviews?",
-    "Do you enjoy learning about medicine?",
-    "Do you enjoy working in hospitals?",
-    "Do you like giving motivational speeches?",
-    "Do you like organizing sporting events?",
-    "Do you enjoy learning new languages?",
-    "Do you like brainstorming new ideas?",
-    "Do you enjoy selling products?",
-    "Do you enjoy hosting events?",
-    "Do you enjoy fixing cars?",
-    "Do you like flying drones?",
-    "Do you enjoy taking care of pets?",
-    "Do you enjoy working late nights?",
-    "Do you enjoy making music?",
-    "Do you enjoy attending conferences?",
-    "Do you enjoy building things?",
-    "Do you enjoy solving puzzles?",
-    "Do you enjoy helping small businesses?"
+    {"text": "Do you enjoy solving logical problems?", "tags": ["analytical"]},
+    {"text": "Do you prefer helping people with emotional issues?", "tags": ["empathetic"]},
+    {"text": "Do you like working with your hands?", "tags": ["hands-on"]},
+    {"text": "Are you interested in technology?", "tags": ["technical"]},
+    {"text": "Do you enjoy writing or storytelling?", "tags": ["creative"]},
+    {"text": "Do you enjoy leading a team?", "tags": ["leadership"]},
+    {"text": "Are you comfortable with public speaking?", "tags": ["communication"]},
+    {"text": "Do you enjoy detailed work and documentation?", "tags": ["detail-oriented"]},
+    {"text": "Do you like designing things?", "tags": ["design"]},
+    {"text": "Do you enjoy teaching others?", "tags": ["educational"]},
+    {"text": "Would you rather work outdoors?", "tags": ["outdoors"]},
+    {"text": "Do you enjoy working with data?", "tags": ["analytical"]},
+    {"text": "Do you want to make a difference in people's lives?", "tags": ["empathetic"]},
+    {"text": "Do you enjoy programming?", "tags": ["technical"]},
+    {"text": "Do you enjoy performing arts?", "tags": ["creative"]},
+    {"text": "Do you feel comfortable handling responsibility?", "tags": ["leadership"]},
+    {"text": "Do you like organizing information?", "tags": ["detail-oriented"]},
+    {"text": "Do you enjoy brainstorming new ideas?", "tags": ["creative"]},
+    {"text": "Are you good at fixing things?", "tags": ["hands-on"]},
+    {"text": "Do you like helping others learn?", "tags": ["educational"]},
+    {"text": "Do you like spending time with animals?", "tags": ["empathetic"]},
+    {"text": "Would you enjoy capturing photos or videos?", "tags": ["creative"]},
+    {"text": "Do you enjoy exploring how machines work?", "tags": ["technical"]},
+    {"text": "Do you enjoy creating art or graphics?", "tags": ["design"]},
+    {"text": "Would you enjoy managing people or teams?", "tags": ["leadership"]},
 ]
 
 careers = [
-    {"name": "Data Scientist", "traits": [0, 3, 9, 23, 33]},
-    {"name": "Teacher", "traits": [4, 13, 52, 66]},
-    {"name": "Mechanical Engineer", "traits": [2, 18, 28, 90]},
-    {"name": "Graphic Designer", "traits": [7, 21, 43, 55]},
-    {"name": "Chef", "traits": [17, 84]},
-    {"name": "Software Developer", "traits": [3, 26, 53, 74]},
-    {"name": "Veterinarian", "traits": [15, 61, 87]},
-    {"name": "Event Planner", "traits": [27, 75, 76]},
-    {"name": "Police Officer", "traits": [20, 30, 70]},
-    {"name": "Marketing Manager", "traits": [33, 57, 58]},
-    # Add 90 more careers with specific traits
+    {"name": "Software Developer", "description": "Designs, builds, and maintains software applications.", "tags": ["technical", "analytical"]},
+    {"name": "Therapist", "description": "Helps individuals manage and overcome emotional challenges.", "tags": ["empathetic"]},
+    {"name": "Mechanical Engineer", "description": "Designs and maintains mechanical systems.", "tags": ["hands-on", "technical"]},
+    {"name": "Data Analyst", "description": "Analyzes data to help companies make better decisions.", "tags": ["analytical"]},
+    {"name": "Graphic Designer", "description": "Creates visual content for branding and marketing.", "tags": ["creative", "design"]},
+    {"name": "Teacher", "description": "Educates students in various subjects.", "tags": ["educational", "empathetic"]},
+    {"name": "Manager", "description": "Leads teams and coordinates work to reach goals.", "tags": ["leadership"]},
+    {"name": "Veterinarian", "description": "Treats and cares for animals.", "tags": ["empathetic"]},
+    {"name": "Architect", "description": "Designs buildings and oversees construction.", "tags": ["design", "creative"]},
+    {"name": "Electrician", "description": "Installs and maintains electrical systems.", "tags": ["hands-on"]},
 ]
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template_string('''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>AI Career Chat</title>
-        <style>
-            body { font-family: Arial; background: #f0f0f0; padding: 20px; }
-            #chat { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-            .ai, .user { margin: 10px 0; padding: 10px; border-radius: 10px; }
-            .ai { background: #e0f7fa; text-align: left; }
-            .user { background: #dcedc8; text-align: right; }
-            input { width: 100%; padding: 10px; margin-top: 10px; }
-        </style>
-    </head>
-    <body>
-        <div id="chat">
-            <div class="ai">Hi! I'm your career AI. Ready to explore your future?</div>
-        </div>
-        <form onsubmit="sendMessage(event)">
-            <input id="input" placeholder="Type your answer (yes/no)..." autocomplete="off">
+    if 'step' not in session:
+        session['step'] = 0
+        session['scores'] = defaultdict(int)
+        session['asked'] = []
+
+    step = session['step']
+    scores = session['scores']
+    asked = session['asked']
+
+    if request.method == 'POST':
+        answer = request.form.get('answer', '').strip().lower()
+        if answer in ['yes', 'y']:
+            for tag in questions[asked[-1]]['tags']:
+                scores[tag] += 1
+        elif answer not in ['no', 'n']:
+            error = "Please respond with 'yes' or 'no'."
+            return render_template_string(TEMPLATE, question=questions[asked[-1]]['text'], error=error)
+
+    if len(asked) >= 25:
+        # Determine best career match
+        def match_score(career):
+            return sum(scores.get(tag, 0) for tag in career['tags'])
+
+        best = sorted(careers, key=match_score, reverse=True)[:5]
+        session.clear()
+        return render_template_string(RESULT_TEMPLATE, careers=best)
+
+    # Pick a new question
+    available = [i for i in range(len(questions)) if i not in asked]
+    if not available:
+        session.clear()
+        return render_template_string("<p>Not enough questions to proceed.</p>")
+
+    next_q = random.choice(available)
+    asked.append(next_q)
+    session['asked'] = asked
+    session['step'] = step + 1
+    session['scores'] = scores
+    return render_template_string(TEMPLATE, question=questions[next_q]['text'], error=None)
+
+TEMPLATE = """
+<!doctype html>
+<html>
+<head>
+    <title>Career AI Chat</title>
+    <style>
+        body { font-family: Arial; background: #f4f4f4; display: flex; justify-content: center; padding: 50px; }
+        .chat-box { background: white; padding: 20px; width: 500px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input[type=text] { width: 100%; padding: 10px; margin-top: 10px; }
+        input[type=submit] { padding: 10px 20px; background: #007bff; color: white; border: none; margin-top: 10px; cursor: pointer; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="chat-box">
+        <h2>Career AI</h2>
+        <p>{{ question }}</p>
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
+        <form method="post">
+            <input type="text" name="answer" placeholder="yes or no" autofocus>
+            <input type="submit" value="Send">
         </form>
-        <script>
-            let qIndex = 0;
-            let answers = [];
-            const questions = {{ questions|tojson }};
-            const chat = document.getElementById("chat");
-            const input = document.getElementById("input");
+    </div>
+</body>
+</html>
+"""
 
-            function sendMessage(e) {
-                e.preventDefault();
-                const text = input.value.trim();
-                if (!text) return;
-                chat.innerHTML += `<div class='user'>${text}</div>`;
-                answers.push(text.toLowerCase().startsWith('y'));
-                input.value = '';
-
-                qIndex++;
-                if (qIndex < 25 && qIndex < questions.length) {
-                    setTimeout(() => {
-                        chat.innerHTML += `<div class='ai'>${questions[qIndex]}</div>`;
-                        window.scrollTo(0, document.body.scrollHeight);
-                    }, 500);
-                } else {
-                    fetch('/result', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(answers)
-                    }).then(res => res.json()).then(data => {
-                        chat.innerHTML += `<div class='ai'>Top careers for you:</div>`;
-                        data.forEach(c => chat.innerHTML += `<div class='ai'><strong>${c.name}</strong>: ${c.description || '—'}</div>`);
-                        window.scrollTo(0, document.body.scrollHeight);
-                    });
-                }
-            }
-
-            chat.innerHTML += `<div class='ai'>${questions[0]}</div>`;
-        </script>
-    </body>
-    </html>
-    ''', questions=questions)
-
-@app.route('/result', methods=['POST'])
-def result():
-    user_answers = request.get_json()
-    scores = []
-    for career in careers:
-        match_score = sum(user_answers[i] for i in career['traits'] if i < len(user_answers))
-        scores.append((match_score, career))
-    scores.sort(reverse=True)
-    return jsonify([c for s, c in scores[:5]])
+RESULT_TEMPLATE = """
+<!doctype html>
+<html>
+<head>
+    <title>Career Match Results</title>
+    <style>
+        body { font-family: Arial; background: #eef2f7; padding: 30px; }
+        .result-box { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <h1>Top Career Matches</h1>
+    {% for career in careers %}
+        <div class="result-box">
+            <h2>{{ career.name }}</h2>
+            <p>{{ career.description }}</p>
+        </div>
+    {% endfor %}
+    <a href="/">Start Over</a>
+</body>
+</html>
+"""
 
 if __name__ == '__main__':
     app.run(debug=False)
